@@ -70,23 +70,25 @@ angular.module('material.core')
       wrapperEl.append(disableTarget.children());
       disableTarget.append(wrapperEl);
 
+      var restoreStyle = disableTarget.attr('style');
       var computedStyle = $window.getComputedStyle(disableTarget[0]);
-
-      var scrollBarsShowing = !Util.floatingScrollbars() &&
-          scrollEl.scrollHeight > scrollEl.offsetHeight;
-
-      if (scrollBarsShowing) {
-        var restoreOverflowY = disableTarget.css('overflow-y');
-        disableTarget.css('overflow-y', 'scroll');
-      }
+      computeScrollbars(computedStyle);
 
       wrapperEl.css({
         overflow: 'hidden',
         position: 'fixed',
         display: computedStyle.display,
+        '-webkit-align-items': computedStyle.webkitAlignItems,
+        '-ms-flex-align': computedStyle.msFlexAlign,
+        alignItems: computedStyle.alignItems,
+        '-webkit-justify-content': computedStyle.webkitJustifyContent,
+        '-ms-flex-pack': computedStyle.msFlexPack,
+        justifyContent: computedStyle.justifyContent,
+        '-webkit-flex': computedStyle.webkitFlex,
+        '-ms-flex': computedStyle.msFlex,
+        flex: computedStyle.flex,
         'padding-top': computedStyle.paddingTop,
         top: (-1 * heightOffset) + 'px',
-        'min-height': '100%',
         width: '100%'
       });
 
@@ -96,18 +98,42 @@ angular.module('material.core')
       angular.element($window).on('resize', computeSize);
 
       function computeSize() {
+        if (restoreStyle) {
+          disableTarget.attr('style', restoreStyle);
+        } else {
+          disableTarget[0].removeAttribute('style');
+        }
+        wrapperEl.css('position', 'static');
+        var computedStyle = $window.getComputedStyle(disableTarget[0]);
+        computeScrollbars(computedStyle);
         wrapperEl.css({
           'max-width': disableTarget[0].offsetWidth + 'px'
         });
+        wrapperEl.css('position', 'fixed');
+      }
+
+      function computeScrollbars(computedStyle) {
+        var scrollBarsShowing = !Util.floatingScrollbars() &&
+            scrollEl.scrollHeight > scrollEl.offsetHeight;
+
+        if (scrollBarsShowing) {
+          disableTarget.css('overflow-y', 'scroll');
+        }
+
+        if (scrollEl.scrollHeight > scrollEl.offsetHeight) {
+          wrapperEl.css('min-height', '100%');
+        } else {
+          wrapperEl.css('max-height', computedStyle.height);
+          wrapperEl.css('height', '100%');
+        }
+        disableTarget.css('height', computedStyle.height);
       }
 
       return function restoreScroll() {
         disableTarget.append(wrapperEl.children());
         wrapperEl.remove();
         angular.element($window).off('resize', computeSize);
-        if (scrollBarsShowing) {
-          disableTarget.css('overflow-y', restoreOverflowY || false);
-        }
+        disableTarget.attr('style', restoreStyle);
         if (useDocElement) {
           $document[0].documentElement.scrollTop = restoreOffset;
         } else {
